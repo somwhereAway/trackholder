@@ -1,12 +1,16 @@
-
+import os
 import logging
 
-from telegram import ForceReply, Update
+from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, ContextTypes, MessageHandler, filters)
 
-from app.file_handle import handle_document, show_all_files
+from app.file_handle import handle_document, get_my_merged_kml
+from app.start_handler import start
 
+
+load_dotenv()
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -16,21 +20,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
-    user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
-        reply_markup=ForceReply(selective=True),
-    )
-
-
-async def help_command(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
-    """Send a message when the command /help is issued."""
-    await update.message.reply_text("Help!")
+TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -41,10 +31,9 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     """Start the bot."""
     application = Application.builder().token(
-        "6514963039:AAEYWXDqxvYDu9zM7m8Rr_rykgxQGe0ixss").build()
+        TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("files", show_all_files))
+    application.add_handler(CommandHandler("my_merged", get_my_merged_kml))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, echo))
     application.add_handler(MessageHandler(
