@@ -38,32 +38,20 @@ def merge_kml_files(file1, file2, output_file):
 
 
 NSMAP_LINE = 2
-NAMESPACE_PATTERN = r'xmlns(?:\s*:\s*(\w+))?="([^"]+)"'
+NAMESPACE_PATTERN = r'xmlns(:\w+)?="[^"]+"'
 FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 THERD_LINE = "<Document>"
-LAST_TWO_LINES = "</Document>\n<kml>"
+LAST_TWO_LINES = "</Document>\n</kml>"
 END_INDEX = 2
+SPACE = " "
+BEGIN_NSMAP = "<kml "
+END_NSMAP = ">"
 
 
-def parse_kml_namespaces(kml_string: str) -> Dict[str, str]:
-    if not kml_string.startswith('<kml'):
-        raise ValueError("Строка должна начинаться с <kml")
-    result = {}
-    for match in re.finditer(NAMESPACE_PATTERN, kml_string):
-        prefix = match.group(1)
-        url = match.group(2)
-        if prefix:
-            result[f'xmlns:{prefix}'] = url
-        else:
-            result['xmlns'] = url
-
-    return result
-
-
-def get_line(file_path: str, line_number: int) -> str:
+def get_nsmap_line(file_path: str, line_number: int = NSMAP_LINE) -> str:
     with open(file_path, 'r', encoding='utf-8') as file:
-        line = next(islice(file, line_number, line_number + 1), None)
-    return line
+        line = next(islice(file, line_number - 1, line_number), None)
+    return str(line)
 
 
 def parse_header(
@@ -78,12 +66,17 @@ def parse_header(
     return line_count
 
 
-def namespaces_to_kml_string(namespaces: Dict[str, str]) -> str:
-    kml_string = '<kml '
-    for prefix, url in namespaces.items():
-        kml_string += f'{prefix}="{url}" '
-    kml_string = kml_string.strip() + '>'
-    return kml_string
+def parse_kml_namespaces(kml_string: str) -> list[str]:
+    if not kml_string.startswith(BEGIN_NSMAP):
+        raise ValueError("Строка должна начинаться с <kml")
+    begin_index = len(BEGIN_NSMAP) + 1
+    end_index = -(len(END_NSMAP) + 1)
+    return kml_string[begin_index:end_index]
+
+
+def namespaces_to_kml_string(namespaces: set[str]) -> str:
+    result_string = BEGIN_NSMAP + ' '.join(map(str, namespaces)) + END_NSMAP
+    return result_string
 
 
 def append_file(output_buffer, file, count):
@@ -94,22 +87,25 @@ def append_file(output_buffer, file, count):
             output_buffer.write(all_lines[i])
 
 
-def pure_merge(file: str, output_file: str = "output.kml") -> None:
-    nmspace1, count1 = parse_header(output_file)
-    nmspace2, count2 = parse_header(file1)
-    nsmap_string = namespaces_to_kml_string(nmspace1 | nmspace2)
+def merge_kml_filesv2(
+    set_of_filepaths: list[str], output_file: str = "o.kml"
+) -> None:
+    namespaces = set()
+    for path in set_of_filepaths:
+        nsmap = parse_kml_namespaces(get_nsmap_line(path))
+        namespaces.update(nsmap.split(SPACE))
+    nsmap_string = namespaces_to_kml_string(namespaces)
     head_lines = (FIRST_LINE, nsmap_string, THERD_LINE)
-    output_buffer = io.StringIO()
-    for line in head_lines:
-        output_buffer.write(line + '\n')
-    append_file(output_buffer, file1, count1)
-    append_file(output_buffer, file2, count2)
-    output_buffer.write(LAST_TWO_LINES)
-    output_content = output_buffer.getvalue()
-    output_buffer.close()
-    return output_content
+
+    with open(output_file, 'w', encoding='utf-8') as outfile:
+        for line in head_lines:
+            outfile.write(line + '\n')
+        for path in set_of_filepaths:
+            head_lines = parse_header(path)
+            append_file(outfile, path, head_lines)
+        outfile.write(LAST_TWO_LINES)
 
 
 file1 = "kml_files/file_1.kml"
 file2 = "kml_files/file_2.kml"
-print(sys.getsizeof(pure_merge(file1, file2))/1024)
+merge_kml_filesv2([file1, file2])
