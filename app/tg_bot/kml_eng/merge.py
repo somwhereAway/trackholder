@@ -69,7 +69,7 @@ def parse_header(
 def parse_kml_namespaces(kml_string: str) -> list[str]:
     if not kml_string.startswith(BEGIN_NSMAP):
         raise ValueError("Строка должна начинаться с <kml")
-    begin_index = len(BEGIN_NSMAP) + 1
+    begin_index = len(BEGIN_NSMAP)
     end_index = -(len(END_NSMAP) + 1)
     return kml_string[begin_index:end_index]
 
@@ -106,6 +106,6 @@ def merge_kml_filesv2(
         outfile.write(LAST_TWO_LINES)
 
 
-file1 = "kml_files/file_1.kml"
-file2 = "kml_files/file_2.kml"
-merge_kml_filesv2([file1, file2])
+# file1 = "kml_files/file_1.kml"
+# file2 = "kml_files/file_2.kml"
+# merge_kml_filesv2([file1, file2])

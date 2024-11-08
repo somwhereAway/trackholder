@@ -21,3 +21,4 @@ if __name__ == '__main__':
     end_time = datetime.now()
     print('Окончание работы основного потока')
     print(f'Итоговое время выполнения: {end_time - start_time} секунд.')
+    clear_folder.clear_folder(output_folder)
