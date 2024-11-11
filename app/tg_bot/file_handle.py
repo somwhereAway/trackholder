@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext
 
 from core.crud import create_file, get_user_all_file_paths
 from core.utils import delete_file
-from tg_bot.kml_utils import merge_kml_files_parallel
+from tg_bot.kml_eng.merge import merge_kml_files_v2
 
 
 MERGED_FILE_PATH = "./files/merged.kml"
@@ -55,7 +55,7 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     :param context: Контекст обратного вызова.
     """
     filepaths = await get_user_all_file_paths(update.message.from_user.id)
-    my_merged = await merge_kml_files_parallel(filepaths)
+    my_merged = merge_kml_files_v2(filepaths)
 
     try:
         await context.bot.send_document(

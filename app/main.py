@@ -1,3 +1,4 @@
+import os
 import asyncio
 import uvicorn
 from fastapi import FastAPI, Request
@@ -13,7 +14,7 @@ templates = Jinja2Templates(directory="templates")
 requests_list = []
 
 
-@app.post("/webhook/")
+@app.post("/telegram/")
 async def handle_webhook(request: Request):
     data = await request.json()  # Получаем данные в формате JSON
     requests_list.append(data)  # Сохраняем запрос в список
@@ -23,6 +24,9 @@ async def handle_webhook(request: Request):
         )
     )
     return {"status": "ok"}
+
+templates = Jinja2Templates(directory=os.path.join(
+    os.path.dirname(__file__), '.', 'templates'))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -36,7 +40,7 @@ async def main():
             app=app,
             port=8000,
             use_colors=True,
-            host='localhost',
+            host='0.0.0.0',
         )
     )
     async with tgbot_core.tgbot.ptb_app:

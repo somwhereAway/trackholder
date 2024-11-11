@@ -173,3 +173,4 @@ maps/
 # Исключение файлов и папок с настройками среды
 *.env
 dev
+app/tg_bot/kml_eng/kml_files
