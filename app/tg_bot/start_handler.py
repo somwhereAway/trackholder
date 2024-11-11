@@ -15,9 +15,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     text = ""
     if created:
-        text = f"Привет {username}\n"
+        text = f"Привет {first_name}\n"
     else:
-        text = f"С возвращением, {username}\n"
+        text = f"С возвращением, {first_name}\n"
 
     info_text = "Введите команду:"\
                 "\n/my_merged - получить обьедененный кмл из своих файлов"
