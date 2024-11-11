@@ -1,4 +1,5 @@
 import io
+from io import BytesIO
 from itertools import islice
 import re
 import sys
@@ -84,12 +85,10 @@ def append_file(output_buffer, file, count):
         all_lines = in_file.readlines()
         start_index = count - 1
         for i in range(start_index, len(all_lines) - END_INDEX):
-            output_buffer.write(all_lines[i])
+            output_buffer.write(all_lines[i].encode('utf-8'))
 
 
-def merge_kml_files_v2(
-    set_of_filepaths: list[str], output_file: str = "o.kml"
-) -> None:
+def merge_kml_files_v2(set_of_filepaths: list[str]) -> BytesIO:
     namespaces = set()
     for path in set_of_filepaths:
         nsmap = parse_kml_namespaces(get_nsmap_line(path))
@@ -97,15 +96,17 @@ def merge_kml_files_v2(
     nsmap_string = namespaces_to_kml_string(namespaces)
     head_lines = (FIRST_LINE, nsmap_string, THERD_LINE)
 
-    with open(output_file, 'w', encoding='utf-8') as outfile:
+    output_buffer = BytesIO()
+
+    with output_buffer as outfile:
         for line in head_lines:
-            outfile.write(line + '\n')
+            outfile.write((line + '\n').encode('utf-8'))
         for path in set_of_filepaths:
             head_lines = parse_header(path)
             append_file(outfile, path, head_lines)
-        outfile.write(LAST_TWO_LINES)
-
-
+        outfile.write((LAST_TWO_LINES).encode('utf-8'))
+        outfile.seek(0)
+    return output_buffer
 # file1 = "kml_files/file_1.kml"
 # file2 = "kml_files/file_2.kml"
 # merge_kml_filesv2([file1, file2])
