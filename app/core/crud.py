@@ -57,3 +57,10 @@ async def get_or_create_telegram_user(tg_id, first_name, last_name, username):
             await session.refresh(telegram_user)
 
     return telegram_user, created
+
+
+async def file_exists_in_database(filehash: int) -> bool:
+    async with AsyncSessionLocal() as session:
+        statement = select(File).where(File.filehash == str(filehash))
+        result = await session.execute(statement)
+        return result.scalars().first() is not None

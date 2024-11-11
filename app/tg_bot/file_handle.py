@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 
-from core.crud import create_file, get_user_all_file_paths
+from core.crud import create_file, get_user_all_file_paths, file_exists_in_database
 from core.utils import delete_file
 from tg_bot.kml_eng.merge import merge_kml_files_v2
 
@@ -26,6 +26,7 @@ def calculate_file_hash(file_stream) -> str:
 async def handle_document(update: Update, context: CallbackContext) -> None:
     document = update.message.document
     file_name = document.file_name
+
     if document.mime_type != 'application/vnd.google-earth.kml+xml':
         await update.message.reply_text("Пожалуйста, отправьте KML файл.")
         return
@@ -34,20 +35,25 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
     file_stream_io = BytesIO(file_stream)
     hash_value = calculate_file_hash(file_stream_io)
     file_stream_io.seek(0)
-    path_to_file = f"./files/{hash_value[-10:]}"
+    path_to_file = f"./files/{hash_value[-16:]}"
     file_data = {
         "filehash": str(hash_value),
         "filename": str(file_name),
         "filepath": str(path_to_file),
         "created_by": int(update.message.from_user.id)
     }
+    if await file_exists_in_database(hash_value):
+        await update.message.reply_text("Этот файл уже есть в базе данных.")
+        return
     with open(path_to_file, "wb") as f:
         f.write(file_stream_io.read())
     if await create_file(file_data):
         await update.message.reply_text("Ваш файл сохранен.")
     else:
         delete_file(path_to_file)
-        await update.message.reply_text("Этот файл есть в базе данных")
+        await update.message.reply_text(
+            "Произошла ошибка при сохранении файла."
+        )
 
 
 async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
