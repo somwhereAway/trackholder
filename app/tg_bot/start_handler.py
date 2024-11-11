@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from core.crud import get_or_create_telegram_user
 
 
-async def start1(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_id = update.message.from_user.id
     first_name = update.message.from_user.first_name
     last_name = update.message.from_user.last_name
