@@ -1,4 +1,5 @@
 import hashlib
+import logging
 
 from io import BytesIO
 from telegram import Update
@@ -9,6 +10,8 @@ from core.crud import create_file, get_user_all_file_paths
 from core.utils import delete_file
 from tg_bot.kml_eng.merge import merge_kml_files_v2
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MERGED_FILE_PATH = "./files/merged.kml"
 
@@ -55,6 +58,9 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     :param context: Контекст обратного вызова.
     """
     filepaths = await get_user_all_file_paths(update.message.from_user.id)
+    logger.info(
+        f"Список файлов {update.message.from_user.id}: {filepaths}"
+    )
     my_merged = merge_kml_files_v2(filepaths)
 
     try:
@@ -69,3 +75,5 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(
             f"Произошла ошибка при отправке файла: {e}"
         )
+    finally:
+        my_merged.close()

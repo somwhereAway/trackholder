@@ -11,17 +11,13 @@ from telegram.ext import (
 )
 from dotenv import load_dotenv
 
-from tg_bot.start_handler import start1
+from tg_bot.start_handler import start
 from tg_bot.file_handle import handle_document, get_my_merged_kml
 
 load_dotenv()
 ASK_FOR_REVIEW = 1
 
 TOKEN = os.environ['TOKEN']
-
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я бот!")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -38,7 +34,6 @@ class TGBot:
             .build()
         )
         self.ptb_app.add_handler(CommandHandler("start", start))
-        self.ptb_app.add_handler(CommandHandler("start1", start1))
         self.ptb_app.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND, handle_message))
         self.ptb_app.add_handler(MessageHandler(

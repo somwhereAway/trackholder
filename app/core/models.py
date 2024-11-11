@@ -1,7 +1,7 @@
 from sqlalchemy import (
     Column, String, DateTime, Integer, ForeignKey, Boolean
 )
-from datetime import datetime,  timezone
+from sqlalchemy.sql import func
 from core.db import Base
 
 MAX_USERNAME_LENGTH = 150
@@ -16,7 +16,7 @@ class TelegramUser(Base):
     username = Column(String(MAX_USERNAME_LENGTH), nullable=True)
     is_blocked = Column(Boolean, default=False)
     created_at = Column(
-        DateTime, default=datetime.now(timezone.utc)
+        DateTime, default=func.now()
     )
     superuser = Column(Boolean, default=False)
     staff_user = Column(Boolean, default=False)
@@ -32,7 +32,7 @@ class File(Base):
     filehash = Column(String(64), primary_key=True, nullable=False)
     filename = Column(String, nullable=False)
     filepath = Column(String, unique=True, nullable=False)
-    time = Column(DateTime, default=datetime.now)
+    time = Column(DateTime, default=func.now())
     created_by = Column(Integer, ForeignKey(
         "telegram_user.tg_id"), nullable=True)
 
