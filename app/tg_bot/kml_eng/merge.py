@@ -87,7 +87,7 @@ def append_file(output_buffer, file, count):
             output_buffer.write(all_lines[i])
 
 
-def merge_kml_filesv2(
+def merge_kml_files_v2(
     set_of_filepaths: list[str], output_file: str = "o.kml"
 ) -> None:
     namespaces = set()
