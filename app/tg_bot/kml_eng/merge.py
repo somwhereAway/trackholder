@@ -1,8 +1,5 @@
-import io
 from io import BytesIO
 from itertools import islice
-import re
-import sys
 from typing import Tuple, Dict
 
 from lxml import etree
@@ -30,7 +27,9 @@ def merge_kml_files(file1, file2, output_file):
     root1.nsmap.update(nsmap)
     print(root1)
 
-    for placemark in document2.findall('.//{http://www.opengis.net/kml/2.2}Placemark'):
+    for placemark in document2.findall(
+        './/{http://www.opengis.net/kml/2.2}Placemark'
+    ):
         document1.append(placemark)
 
     tree1.write(output_file, pretty_print=True,
@@ -80,12 +79,12 @@ def namespaces_to_kml_string(namespaces: set[str]) -> str:
     return result_string
 
 
-def append_file(output_buffer, file, count):
+def append_file(outfile, file, count):
     with open(file, 'r', encoding='utf-8') as in_file:
         all_lines = in_file.readlines()
         start_index = count - 1
         for i in range(start_index, len(all_lines) - END_INDEX):
-            output_buffer.write(all_lines[i].encode('utf-8'))
+            outfile.write(all_lines[i].encode('utf-8'))
 
 
 def merge_kml_files_v2(set_of_filepaths: list[str]) -> BytesIO:
@@ -96,17 +95,15 @@ def merge_kml_files_v2(set_of_filepaths: list[str]) -> BytesIO:
     nsmap_string = namespaces_to_kml_string(namespaces)
     head_lines = (FIRST_LINE, nsmap_string, THERD_LINE)
 
-    output_buffer = BytesIO()
-
-    with output_buffer as outfile:
-        for line in head_lines:
-            outfile.write((line + '\n').encode('utf-8'))
-        for path in set_of_filepaths:
-            head_lines = parse_header(path)
-            append_file(outfile, path, head_lines)
-        outfile.write((LAST_TWO_LINES).encode('utf-8'))
-        outfile.seek(0)
-    return output_buffer
+    outfile = BytesIO()
+    for line in head_lines:
+        outfile.write((line + '\n').encode('utf-8'))
+    for path in set_of_filepaths:
+        head_lines = parse_header(path)
+        append_file(outfile, path, head_lines)
+    outfile.write((LAST_TWO_LINES).encode('utf-8'))
+    outfile.seek(0)
+    return outfile
 # file1 = "kml_files/file_1.kml"
 # file2 = "kml_files/file_2.kml"
 # merge_kml_filesv2([file1, file2])

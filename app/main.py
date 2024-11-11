@@ -31,7 +31,10 @@ templates = Jinja2Templates(directory=os.path.join(
 
 @app.get("/", response_class=HTMLResponse)
 async def get_requests(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "requests": requests_list})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "requests": requests_list}
+    )
 
 
 async def main():

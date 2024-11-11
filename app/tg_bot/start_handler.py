@@ -20,6 +20,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         text = f"С возвращением, {username}\n"
 
     info_text = "Введите команду:"\
-                "\n/merged - олучить обьедененный кмл из своих файлов"
+                "\n/my_merged - получить обьедененный кмл из своих файлов"
     full_text = text + info_text
     await update.message.reply_html(text=full_text)

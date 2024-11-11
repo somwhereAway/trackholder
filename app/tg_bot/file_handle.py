@@ -75,3 +75,5 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(
             f"Произошла ошибка при отправке файла: {e}"
         )
+    finally:
+        my_merged.close()
