@@ -68,7 +68,7 @@ async def get_or_create_telegram_user(tg_id, first_name, last_name, username):
     return telegram_user, created
 
 
-async def is_user_registered(tg_id, first_name, last_name, username):
+async def is_user_registered(tg_id):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(TelegramUser).where(TelegramUser.tg_id == tg_id)

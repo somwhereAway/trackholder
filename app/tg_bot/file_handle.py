@@ -113,6 +113,11 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
 
     filepaths_names = await get_user_all_file_paths_names(
         update.message.from_user.id)
+    if not filepaths_names:
+        await update.message.reply_text(
+            "Ваших файлов у меня пока нету."
+        )
+        return
     missing_files = await check_file_paths(filepaths_names)
     if missing_files:
         filenames = []
