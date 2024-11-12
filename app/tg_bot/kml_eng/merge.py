@@ -46,6 +46,10 @@ END_INDEX = 2
 SPACE = " "
 BEGIN_NSMAP = "<kml "
 END_NSMAP = ">"
+FOLDER_OPEN = "<Folder>\n"
+FOLDER_CLOSE = "</Folder>\n"
+NAME_OPEN = "<name>"
+NAME_CLOSE = "</name>"
 
 
 def get_nsmap_line(file_path: str, line_number: int = NSMAP_LINE) -> str:
@@ -79,17 +83,22 @@ def namespaces_to_kml_string(namespaces: set[str]) -> str:
     return result_string
 
 
-def append_file(outfile, file, count):
+def append_file(outfile, file, count, filename):
     with open(file, 'r', encoding='utf-8') as in_file:
         all_lines = in_file.readlines()
         start_index = count - 1
+        outfile.write(FOLDER_OPEN.encode('utf-8'))
+        outfile.write(NAME_OPEN.encode('utf-8'))
+        outfile.write(str(filename).encode('utf-8'))
+        outfile.write(NAME_CLOSE.encode('utf-8'))
         for i in range(start_index, len(all_lines) - END_INDEX):
             outfile.write(all_lines[i].encode('utf-8'))
+        outfile.write(FOLDER_CLOSE.encode('utf-8'))
 
 
-def merge_kml_files_v2(set_of_filepaths: list[str]) -> BytesIO:
+def merge_kml_files_v2(files: list[tuple]) -> BytesIO:
     namespaces = set()
-    for path in set_of_filepaths:
+    for path, filename in files:
         nsmap = parse_kml_namespaces(get_nsmap_line(path))
         namespaces.update(nsmap.split(SPACE))
     nsmap_string = namespaces_to_kml_string(namespaces)
@@ -98,12 +107,9 @@ def merge_kml_files_v2(set_of_filepaths: list[str]) -> BytesIO:
     outfile = BytesIO()
     for line in head_lines:
         outfile.write((line + '\n').encode('utf-8'))
-    for path in set_of_filepaths:
+    for path, filename in files:
         head_lines = parse_header(path)
-        append_file(outfile, path, head_lines)
+        append_file(outfile, path, head_lines, filename)
     outfile.write((LAST_TWO_LINES).encode('utf-8'))
     outfile.seek(0)
     return outfile
-# file1 = "kml_files/file_1.kml"
-# file2 = "kml_files/file_2.kml"
-# merge_kml_filesv2([file1, file2])

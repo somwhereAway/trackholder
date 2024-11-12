@@ -36,12 +36,13 @@ async def get_file_by_filepath(filepath: str) -> File:
         return file
 
 
-async def get_user_all_file_paths(tg_id: int) -> list[str]:
+async def get_user_all_file_paths_names(tg_id: int) -> list[tuple[str, str]]:
     async with AsyncSessionLocal() as session:
         statement = select(File).where(File.created_by == tg_id)
         result = await session.execute(statement)
-        filepaths = [file.filepath for file in result.scalars().all()]
-        return filepaths
+        filepaths_names = [(file.filepath, file.filename)
+                           for file in result.scalars().all()]
+        return filepaths_names
 
 
 async def get_or_create_telegram_user(tg_id, first_name, last_name, username):

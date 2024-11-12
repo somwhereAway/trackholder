@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext
 
 from core.crud import (
     create_file,
-    get_user_all_file_paths,
+    get_user_all_file_paths_names,
     file_exists_in_database,
     get_file_by_filepath
 )
@@ -89,17 +89,15 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
         )
 
 
-async def check_file_paths(filepaths: list[str]) -> tuple[list[str], list[str]]:
-    existing_files = []
+async def check_file_paths(
+    filepaths: list[tuple[str, str]]
+) -> tuple[list[str], list[str]]:
     missing_files = []
 
-    for path in filepaths:
-        if await os.path.exists(path):
-            existing_files.append(path)
-        else:
+    for path, name in filepaths:
+        if not await os.path.exists(path):
             missing_files.append(path)
-
-    return existing_files, missing_files
+    return missing_files
 
 
 async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
@@ -109,11 +107,9 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     :param update: Объект обновления Telegram.
     :param context: Контекст обратного вызова.
     """
-    filepaths = await get_user_all_file_paths(update.message.from_user.id)
-    existing_files, missing_files = await check_file_paths(filepaths)
-    logger.info(
-        f"Список файлов {update.message.from_user.id}: {filepaths}"
-    )
+    filepaths_names = await get_user_all_file_paths_names(
+        update.message.from_user.id)
+    missing_files = await check_file_paths(filepaths_names)
     if missing_files:
         filenames = []
         for filepath in missing_files:
@@ -128,7 +124,7 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
             f"Этих файлов нету!: {filenames}"
         )
         return
-    my_merged = merge_kml_files_v2(filepaths)
+    my_merged = merge_kml_files_v2(filepaths_names)
 
     try:
         await context.bot.send_document(
