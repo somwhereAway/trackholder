@@ -28,6 +28,14 @@ async def get_file(filehash: str) -> File:
         return file
 
 
+async def get_file_by_filepath(filepath: str) -> File:
+    async with AsyncSessionLocal() as session:
+        statement = select(File).where(File.filepath == filepath)
+        result = await session.execute(statement)
+        file = result.scalars().first()
+        return file
+
+
 async def get_user_all_file_paths(tg_id: int) -> list[str]:
     async with AsyncSessionLocal() as session:
         statement = select(File).where(File.created_by == tg_id)
@@ -59,8 +67,11 @@ async def get_or_create_telegram_user(tg_id, first_name, last_name, username):
     return telegram_user, created
 
 
-async def file_exists_in_database(filehash: int) -> bool:
+async def file_exists_in_database(filehash: int) -> bool | str:
     async with AsyncSessionLocal() as session:
         statement = select(File).where(File.filehash == str(filehash))
         result = await session.execute(statement)
-        return result.scalars().first() is not None
+        file: File = result.scalars().first()
+        if file is not None:
+            return file.filepath
+        return False

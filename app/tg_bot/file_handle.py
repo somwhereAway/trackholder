@@ -1,23 +1,29 @@
 import hashlib
 import logging
+from aiofiles import os
 
 from io import BytesIO
 from telegram import Update
 from telegram.ext import CallbackContext
 
 
-from core.crud import create_file, get_user_all_file_paths, file_exists_in_database
-from core.utils import delete_file
+from core.crud import (
+    create_file,
+    get_user_all_file_paths,
+    file_exists_in_database,
+    get_file_by_filepath
+)
 from tg_bot.kml_eng.merge import merge_kml_files_v2
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MERGED_FILE_PATH = "./files/merged.kml"
+COPY_STR = "_copy"
 
 
 def calculate_file_hash(file_stream) -> str:
-    hash_func = hashlib.sha256()  # Можно заменить на md5 или другой алгоритм
+    hash_func = hashlib.sha256()
     for chunk in iter(lambda: file_stream.read(4096), b""):
         hash_func.update(chunk)
     return hash_func.hexdigest()
@@ -39,21 +45,61 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
     file_data = {
         "filehash": str(hash_value),
         "filename": str(file_name),
-        "filepath": str(path_to_file),
+        "filepath": path_to_file,
         "created_by": int(update.message.from_user.id)
     }
-    if await file_exists_in_database(hash_value):
-        await update.message.reply_text("Этот файл уже есть в базе данных.")
+    file_in_database = await file_exists_in_database(hash_value)
+    file_in_store = False
+    if file_in_database:
+        file_in_store = await os.path.exists(file_in_database)
+    else:
+        file_in_store = await os.path.exists(path_to_file)
+    if file_in_database and file_in_store:
+        await update.message.reply_text(
+            "Такой файл уже есть."
+        )
+        return
+    if file_in_database:
+        with open(file_in_database, "wb") as f:
+            f.write(file_stream_io.read())
+        await update.message.reply_text(
+            "Файл по какойто причине отсутвовал в хранилище!\n"
+            "Файл успешно записан на диск!\n"
+            "Админу сообщил.")
+        return
+    if file_in_store:
+        logger.warning(
+            f"Файл {path_to_file} был в хранилище, но отсутвовал в бд!"
+        )
+        file_data["filepath"] = path_to_file + COPY_STR
+        if await create_file(file_data):
+            await update.message.reply_text("Ваш файл сохранен.")
+        else:
+            await update.message.reply_text(
+                "Произошла ошибка при сохранении файла."
+            )
         return
     with open(path_to_file, "wb") as f:
         f.write(file_stream_io.read())
     if await create_file(file_data):
         await update.message.reply_text("Ваш файл сохранен.")
     else:
-        delete_file(path_to_file)
         await update.message.reply_text(
             "Произошла ошибка при сохранении файла."
         )
+
+
+async def check_file_paths(filepaths: list[str]) -> tuple[list[str], list[str]]:
+    existing_files = []
+    missing_files = []
+
+    for path in filepaths:
+        if await os.path.exists(path):
+            existing_files.append(path)
+        else:
+            missing_files.append(path)
+
+    return existing_files, missing_files
 
 
 async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
@@ -64,9 +110,24 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     :param context: Контекст обратного вызова.
     """
     filepaths = await get_user_all_file_paths(update.message.from_user.id)
+    existing_files, missing_files = await check_file_paths(filepaths)
     logger.info(
         f"Список файлов {update.message.from_user.id}: {filepaths}"
     )
+    if missing_files:
+        filenames = []
+        for filepath in missing_files:
+            filenames.append(
+                await get_file_by_filepath(filepath)
+            )
+        logger.info(
+            f"Этих файлов нету!: {filenames}"
+        )
+        await update.message.reply_text(
+            "Произошла ужасная ошибка: \n"
+            f"Этих файлов нету!: {filenames}"
+        )
+        return
     my_merged = merge_kml_files_v2(filepaths)
 
     try:
