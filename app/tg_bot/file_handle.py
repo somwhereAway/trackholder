@@ -11,9 +11,10 @@ from core.crud import (
     create_file,
     get_user_all_file_paths_names,
     file_exists_in_database,
-    get_file_by_filepath
+    get_file_by_filepath,
 )
 from tg_bot.kml_eng.merge import merge_kml_files_v2
+from tg_bot.decorators import require_registration
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ def calculate_file_hash(file_stream) -> str:
     return hash_func.hexdigest()
 
 
+@require_registration
 async def handle_document(update: Update, context: CallbackContext) -> None:
     document = update.message.document
     file_name = document.file_name
@@ -100,6 +102,7 @@ async def check_file_paths(
     return missing_files
 
 
+@require_registration
 async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     """
     Отправляет пользователю файл 'merged.kml'.
@@ -107,6 +110,7 @@ async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
     :param update: Объект обновления Telegram.
     :param context: Контекст обратного вызова.
     """
+
     filepaths_names = await get_user_all_file_paths_names(
         update.message.from_user.id)
     missing_files = await check_file_paths(filepaths_names)

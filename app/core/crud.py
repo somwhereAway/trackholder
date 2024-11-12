@@ -68,6 +68,14 @@ async def get_or_create_telegram_user(tg_id, first_name, last_name, username):
     return telegram_user, created
 
 
+async def is_user_registered(tg_id, first_name, last_name, username):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(TelegramUser).where(TelegramUser.tg_id == tg_id)
+        )
+        return result.scalar_one_or_none()
+
+
 async def file_exists_in_database(filehash: int) -> bool | str:
     async with AsyncSessionLocal() as session:
         statement = select(File).where(File.filehash == str(filehash))
@@ -76,3 +84,17 @@ async def file_exists_in_database(filehash: int) -> bool | str:
         if file is not None:
             return file.filepath
         return False
+
+
+async def delete_user(tg_id):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(TelegramUser).where(TelegramUser.tg_id == tg_id)
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            await session.delete(user)
+            await session.commit()
+            return True
+        else:
+            return False

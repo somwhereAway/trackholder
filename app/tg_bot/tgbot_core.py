@@ -12,10 +12,10 @@ from telegram.ext import (
 from dotenv import load_dotenv
 
 from tg_bot.start_handler import start
+from tg_bot.stop_handler import stop
 from tg_bot.file_handle import handle_document, get_my_merged_kml
 
 load_dotenv()
-ASK_FOR_REVIEW = 1
 
 TOKEN = os.environ['TOKEN']
 
@@ -34,6 +34,7 @@ class TGBot:
             .build()
         )
         self.ptb_app.add_handler(CommandHandler("start", start))
+        self.ptb_app.add_handler(CommandHandler("stop", stop))
         self.ptb_app.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND, handle_message))
         self.ptb_app.add_handler(MessageHandler(

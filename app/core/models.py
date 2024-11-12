@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column, String, DateTime, Integer, ForeignKey, Boolean
 )
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from core.db import Base
 
 MAX_USERNAME_LENGTH = 150
@@ -34,7 +35,9 @@ class File(Base):
     filepath = Column(String, unique=True, nullable=False)
     time = Column(DateTime, default=func.now())
     created_by = Column(Integer, ForeignKey(
-        "telegram_user.tg_id"), nullable=True)
+        "telegram_user.tg_id", ondelete="SET NULL"), nullable=True)
+    created_user = relationship(
+        "TelegramUser", backref="files", uselist=False, passive_deletes=True)
 
     def __repr__(self):
         return f"{self.filename}"
