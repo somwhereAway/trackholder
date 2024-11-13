@@ -17,7 +17,7 @@ requests_list = []
 @app.post("/telegram/")
 async def handle_webhook(request: Request):
     data = await request.json()  # Получаем данные в формате JSON
-    requests_list.append(data)  # Сохраняем запрос в список
+    # requests_list.append(data)  # Сохраняем запрос в список
     await tgbot_core.tgbot.ptb_app.update_queue.put(
         Update.de_json(
             data=data, bot=tgbot_core.tgbot.ptb_app.bot
@@ -33,7 +33,7 @@ templates = Jinja2Templates(directory=os.path.join(
 async def get_requests(request: Request):
     return templates.TemplateResponse(
         "index.html",
-        # {"request": request, "requests": requests_list}
+        {"request": request, "requests": requests_list}
     )
 
 

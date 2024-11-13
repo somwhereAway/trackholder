@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from core.crud import delete_user
 
 
-async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def stop_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_id = update.message.from_user.id
 
     deleted = await delete_user(tg_id)
@@ -15,4 +15,9 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "не связанны с вашей учетной записью."
     else:
         text = "Вы не зарегестрированны\n"
+    await update.message.reply_html(text=text)
+
+
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = "Команда недоступна"
     await update.message.reply_html(text=text)

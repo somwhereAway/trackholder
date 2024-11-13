@@ -15,12 +15,18 @@ from core.crud import (
 )
 from tg_bot.kml_eng.merge import merge_kml_files_v2
 from tg_bot.decorators import require_registration
+from tg_bot.utils import delete_file_reply_text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MERGED_FILE_PATH = "./files/merged.kml"
 COPY_STR = "_copy"
+
+# texts
+KML_PLEASE = "Пожалуйста, отправьте KML файл."
+SAVE_ERROR = "Произошла ошибка при сохранении файла."
+FILE_EXIST = "Такой файл уже есть."
 
 
 def calculate_file_hash(file_stream) -> str:
@@ -36,7 +42,7 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
     file_name = document.file_name
 
     if document.mime_type != 'application/vnd.google-earth.kml+xml':
-        await update.message.reply_text("Пожалуйста, отправьте KML файл.")
+        await delete_file_reply_text(update, KML_PLEASE)
         return
     file = await document.get_file()
     file_stream = await file.download_as_bytearray()
@@ -57,9 +63,7 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
     else:
         file_in_store = await os.path.exists(path_to_file)
     if file_in_database and file_in_store:
-        await update.message.reply_text(
-            "Такой файл уже есть."
-        )
+        await delete_file_reply_text(update, FILE_EXIST)
         return
     if file_in_database:
         with open(file_in_database, "wb") as f:
@@ -77,18 +81,14 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
         if await create_file(file_data):
             await update.message.reply_text("Ваш файл сохранен.")
         else:
-            await update.message.reply_text(
-                "Произошла ошибка при сохранении файла."
-            )
+            await delete_file_reply_text(update, SAVE_ERROR)
         return
     with open(path_to_file, "wb") as f:
         f.write(file_stream_io.read())
     if await create_file(file_data):
         await update.message.reply_text("Ваш файл сохранен.")
     else:
-        await update.message.reply_text(
-            "Произошла ошибка при сохранении файла."
-        )
+        await delete_file_reply_text(update, SAVE_ERROR)
 
 
 async def check_file_paths(
