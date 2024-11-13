@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from telegram import Update
 
 import tg_bot.tgbot_core as tgbot_core
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -33,7 +33,7 @@ templates = Jinja2Templates(directory=os.path.join(
 async def get_requests(request: Request):
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "requests": requests_list}
+        # {"request": request, "requests": requests_list}
     )
 
 
