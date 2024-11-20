@@ -10,5 +10,5 @@ ssh vds_rf << 'EOF'
     sudo docker compose -f docker-compose.production.yml pull
     sudo docker compose -f docker-compose.production.yml down
     sudo docker compose -f docker-compose.production.yml up -d
-    #sudo docker compose -f docker-compose.production.yml exec app alembic upgrade head
+    sudo docker compose -f docker-compose.production.yml exec app alembic upgrade head
 EOF

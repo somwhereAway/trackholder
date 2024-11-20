@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, String, DateTime, Integer, ForeignKey, Boolean
+    Column, String, DateTime, BigInteger, ForeignKey, Boolean
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -11,7 +11,7 @@ MAX_USERNAME_LENGTH = 150
 class TelegramUser(Base):
     __tablename__ = "telegram_user"
 
-    tg_id = Column(Integer, primary_key=True, unique=True)
+    tg_id = Column(BigInteger, primary_key=True, unique=True)
     first_name = Column(String(MAX_USERNAME_LENGTH), nullable=False)
     last_name = Column(String(MAX_USERNAME_LENGTH), nullable=True)
     username = Column(String(MAX_USERNAME_LENGTH), nullable=True)
@@ -34,7 +34,7 @@ class File(Base):
     filename = Column(String, nullable=False)
     filepath = Column(String, unique=True, nullable=False)
     time = Column(DateTime, default=func.now())
-    created_by = Column(Integer, ForeignKey(
+    created_by = Column(BigInteger, ForeignKey(
         "telegram_user.tg_id", ondelete="SET NULL"), nullable=True)
     created_user = relationship(
         "TelegramUser", backref="files", uselist=False, passive_deletes=True)

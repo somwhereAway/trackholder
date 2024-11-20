@@ -165,3 +165,13 @@ docker exec -it postgres_container psql -U myuser -d mydatabase
    ```
 
 Это даст возможность использовать команды Docker с `sudo` без запроса пароля, что облегчит деплой.
+## Создание копии в ручную.
+```bash
+
+sudo docker run --rm -v  trackholder_pg_data:/volume -v /home/andrey/trackholder/backup:/backup alpine tar czf /backup/pg_data_backup.tar.gz -C /volume .
+
+sudo docker run --rm -v  trackholder_files:/volume -v /home/andrey/trackholder/backup:/backup alpine tar czf /backup/files_backup.tar.gz -C /volume .
+```
+```bash
+scp -i ~/.ssh/id_rsa -r andrey@45.8.127.18:/home/andrey/trackholder/backup/ C:\Users\андрей\backup
+```
