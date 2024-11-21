@@ -12,11 +12,13 @@ from tg_bot.admin_menu.keyboards import (
 from core.crud import get_all_users, get_user, update_user
 from core.models import TelegramUser
 from tg_bot.admin_menu import constants as cs
+from tg_bot.decorators import require_administrator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@require_administrator
 async def admin_panel(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
     logger.info("User %s started admin menu.", user.first_name)
@@ -27,6 +29,7 @@ async def admin_panel(update: Update, context: CallbackContext) -> int:
     return cs.USER_MENU
 
 
+@require_administrator
 async def users_panel(update: Update, context: CallbackContext):
     users: list[TelegramUser] = await get_all_users()
     page = 0
@@ -44,6 +47,7 @@ async def users_panel(update: Update, context: CallbackContext):
     return await show_users(update, context, page)
 
 
+@require_administrator
 async def show_users(update: Update, context: CallbackContext, page):
     query = update.callback_query
     await query.answer()
@@ -61,6 +65,7 @@ async def show_users(update: Update, context: CallbackContext, page):
     return cs.USER_MENU
 
 
+@require_administrator
 async def rep_button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -73,6 +78,7 @@ async def rep_button(update: Update, context: CallbackContext) -> None:
         return ConversationHandler.END
 
 
+@require_administrator
 async def represent_user(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
