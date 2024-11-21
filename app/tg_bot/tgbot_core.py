@@ -11,9 +11,14 @@ from telegram.ext import (
 )
 from dotenv import load_dotenv
 
+from tg_bot.admin_menu.handlers import admin_handler
 from tg_bot.start_handler import start
 from tg_bot.stop_handler import stop
-from tg_bot.file_handle import handle_document, get_my_merged_kml
+from tg_bot.file_handle import (
+    handle_document,
+    get_my_merged_kml,
+    get_merged_all_kml
+)
 
 load_dotenv()
 
@@ -41,6 +46,9 @@ class TGBot:
             filters.Document.ALL, handle_document))
         self.ptb_app.add_handler(CommandHandler(
             "my_merged", get_my_merged_kml))
+        self.ptb_app.add_handler(CommandHandler(
+            "all_merged", get_merged_all_kml))
+        self.ptb_app.add_handler(admin_handler)
 
 
 tgbot = TGBot()

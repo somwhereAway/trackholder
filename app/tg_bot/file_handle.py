@@ -12,9 +12,11 @@ from core.crud import (
     get_user_all_file_paths_names,
     file_exists_in_database,
     get_file_by_filepath,
+    get_all_file_paths_names
 )
 from tg_bot.kml_eng.merge import merge_kml_files_v2
-from tg_bot.decorators import require_registration
+from tg_bot.decorators import (
+    require_registration, require_superuser)
 from tg_bot.utils import delete_file_reply_text
 
 logging.basicConfig(level=logging.INFO)
@@ -102,50 +104,74 @@ async def check_file_paths(
     return missing_files
 
 
-@require_registration
-async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
+async def send_merged_kml(
+    update: Update,
+    context: CallbackContext,
+    filepaths_names: list[tuple[str, str]],
+    filename: str
+) -> None:
     """
-    Отправляет пользователю файл 'merged.kml'.
-
+    Отправляет пользователю объединенный KML-файл.
     :param update: Объект обновления Telegram.
     :param context: Контекст обратного вызова.
+    :param filepaths_names: Список путей файлов для объединения.
+    :param filename: Имя файла, который будет отправлен.
     """
 
-    filepaths_names = await get_user_all_file_paths_names(
-        update.message.from_user.id)
     if not filepaths_names:
-        await update.message.reply_text(
-            "Ваших файлов у меня пока нету."
-        )
+        await update.message.reply_text("Ваших файлов у меня пока нету.")
         return
+
     missing_files = await check_file_paths(filepaths_names)
     if missing_files:
-        filenames = []
-        for filepath in missing_files:
-            filenames.append(
-                await get_file_by_filepath(filepath)
-            )
-        logger.info(
-            f"Этих файлов нету!: {filenames}"
-        )
+        filenames = [
+            await get_file_by_filepath(filepath) for filepath in missing_files
+        ]
+        logger.info(f"Этих файлов нету!: {filenames}")
         await update.message.reply_text(
-            "Произошла ужасная ошибка: \n"
-            f"Этих файлов нету!: {filenames}"
-        )
+            "Произошла ужасная ошибка: \n" f"Этих файлов нету!: {filenames}")
         return
-    my_merged = merge_kml_files_v2(filepaths_names)
+
+    merged_file = merge_kml_files_v2(filepaths_names)
 
     try:
         await context.bot.send_document(
             chat_id=update.effective_chat.id,
-            document=my_merged,
-            filename="my_merged.kml"
+            document=merged_file,
+            filename=filename
         )
     except FileNotFoundError:
         await update.message.reply_text("Файл не найден.")
     except Exception as e:
         await update.message.reply_text(
-            f"Произошла ошибка при отправке файла: {e}"
-        )
+            f"Произошла ошибка при отправке файла: {e}")
     finally:
-        my_merged.close()
+        merged_file.close()
+
+
+@require_registration
+async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
+    """
+    Отправляет пользователю файл 'my_merged.kml'.
+    Этот файл содержит объединение всех файлов пользователя.
+    :param update: Объект обновления Telegram.
+    :param context: Контекст обратного вызова.
+    """
+    filepaths_names = await get_user_all_file_paths_names(
+        update.message.from_user.id)
+
+    await send_merged_kml(update, context, filepaths_names, "my_merged.kml")
+
+
+@require_superuser
+async def get_merged_all_kml(update: Update, context: CallbackContext) -> None:
+    """
+    Отправляет пользователю файл 'all_merged.kml'.
+    Этот файл содержит объединение всех файлов в БД.
+    :param update: Объект обновления Telegram.
+    :param context: Контекст обратного вызова.
+    """
+    filepaths_names = await get_all_file_paths_names(
+        update.message.from_user.id)
+
+    await send_merged_kml(update, context, filepaths_names, "all_merged.kml")

@@ -7,6 +7,9 @@ from fastapi.templating import Jinja2Templates
 from telegram import Update
 
 import tg_bot.tgbot_core as tgbot_core
+
+WEBHOOK_URL = os.getenv('WEBHOOK_URL')
+
 app = FastAPI(docs_url=None, redoc_url=None)
 
 templates = Jinja2Templates(directory="templates")
@@ -45,6 +48,11 @@ async def main():
             use_colors=True,
             host='0.0.0.0',
         )
+
+    )
+    await tgbot_core.tgbot.ptb_app.bot.setWebhook(
+        url=f'{WEBHOOK_URL}/telegram/',
+        allowed_updates=Update.ALL_TYPES,
     )
     async with tgbot_core.tgbot.ptb_app:
         await tgbot_core.tgbot.ptb_app.start()
