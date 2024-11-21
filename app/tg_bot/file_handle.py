@@ -119,7 +119,7 @@ async def send_merged_kml(
     """
 
     if not filepaths_names:
-        await update.message.reply_text("Ваших файлов у меня пока нету.")
+        await update.message.reply_text("Файлов у меня пока нету.")
         return
 
     missing_files = await check_file_paths(filepaths_names)
