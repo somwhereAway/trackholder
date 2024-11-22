@@ -17,7 +17,7 @@ def require_registration(func):
     async def wrapper(
         update: Update, context: CallbackContext, *args, **kwargs
     ):
-        user_id = update.message.from_user.id
+        user_id = update.effective_user.id
         if not await is_user_registered(user_id):
             await update.message.reply_text(
                 "Пожалуйста, зарегистрируйтесь. Для этого скомандуйте /start.")
@@ -31,7 +31,7 @@ def require_superuser(func):
     async def wrapper(
         update: Update, context: CallbackContext, *args, **kwargs
     ):
-        user_id = update.message.from_user.id
+        user_id = update.effective_user.id
         if not await is_superuser(user_id):
             await update.message.reply_text(
                 "Команда недоступна. Обратитесь к администратору.")
@@ -45,7 +45,7 @@ def require_administrator(func):
     async def wrapper(
         update: Update, context: CallbackContext, *args, **kwargs
     ):
-        user_id = update.message.from_user.id
+        user_id = update.effective_user.id
         if user_id != int(ADMIN_ID):
             await update.message.reply_text(
                 "Команда недоступна.Вы не админ!")

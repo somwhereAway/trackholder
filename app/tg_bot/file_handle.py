@@ -15,6 +15,7 @@ from core.crud import (
     get_all_file_paths_names
 )
 from tg_bot.kml_eng.merge import merge_kml_files_v2
+from tg_bot.kml_eng.validator import validate_kml
 from tg_bot.decorators import (
     require_registration, require_superuser)
 from tg_bot.utils import delete_file_reply_text
@@ -49,6 +50,10 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
     file = await document.get_file()
     file_stream = await file.download_as_bytearray()
     file_stream_io = BytesIO(file_stream)
+    kml_is_not_ok = validate_kml(file_stream_io)
+    if kml_is_not_ok:
+        await delete_file_reply_text(update, kml_is_not_ok)
+        return
     hash_value = calculate_file_hash(file_stream_io)
     file_stream_io.seek(0)
     path_to_file = f"./files/{hash_value[-16:]}"
@@ -171,7 +176,6 @@ async def get_merged_all_kml(update: Update, context: CallbackContext) -> None:
     :param update: Объект обновления Telegram.
     :param context: Контекст обратного вызова.
     """
-    filepaths_names = await get_all_file_paths_names(
-        update.message.from_user.id)
+    filepaths_names = await get_all_file_paths_names()
 
     await send_merged_kml(update, context, filepaths_names, "all_merged.kml")

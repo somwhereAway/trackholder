@@ -1,4 +1,5 @@
 import logging
+from io import BytesIO
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext, ConversationHandler
@@ -9,10 +10,15 @@ from tg_bot.admin_menu.keyboards import (
     represent_user_keyboard,
     main_keyboard
 )
-from core.crud import get_all_users, get_user, update_user
+from core.crud import (
+    get_all_users,
+    get_user, update_user,
+    get_all_file_paths_names
+)
 from core.models import TelegramUser
 from tg_bot.admin_menu import constants as cs
 from tg_bot.decorators import require_administrator
+from tg_bot.kml_eng.validator import validate_kml
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,6 +49,7 @@ async def users_panel(update: Update, context: CallbackContext):
                 'username': user.username,
             }
         )
+    logger.info(f"{users_list} ")
     context.user_data['all_users'] = users_list
     return await show_users(update, context, page)
 
@@ -104,6 +111,7 @@ async def represent_user(update: Update, context: CallbackContext) -> None:
         await query.edit_message_text("Пользователь не найден.")
 
 
+@require_administrator
 async def make_super(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -124,6 +132,7 @@ async def make_super(update: Update, context: CallbackContext) -> None:
     return await represent_user(update, context)
 
 
+@require_administrator
 async def exit_conversation(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -132,4 +141,25 @@ async def exit_conversation(update: Update, context: CallbackContext) -> None:
     except Exception as e:
         print(f"Error deleting message: {e}")
 
+    return ConversationHandler.END
+
+
+async def chek_files(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+    files = await get_all_file_paths_names()
+    corrupted_files = []
+    for path, name in files:
+        with open(path, 'rb') as f:
+            if validate_kml(BytesIO(f.read())):
+                corrupted_files.append((path, name))
+    text = "Все ОК!"
+    if corrupted_files:
+        files_info = "\n".join(
+            [
+                f"{path}, {name}" for path, name in corrupted_files
+            ]
+        )
+        text = f"Информация о пользователе:\n\n{files_info}"
+    await query.edit_message_text(text=text)
     return ConversationHandler.END

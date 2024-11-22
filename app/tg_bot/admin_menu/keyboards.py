@@ -10,7 +10,13 @@ async def main_keyboard() -> list[list[InlineKeyboardButton]]:
             InlineKeyboardButton(
                 "Показать пользователей",
                 callback_data=cs.SHOW_USER
-            ),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "Проверить файлы",
+                callback_data=cs.CHECK_FILES
+            )
         ]
     ]
     keyboard.append(
@@ -41,17 +47,16 @@ async def paginated_users_keyboard(
                 item_text, callback_data=cs.CURR_USER + f'{item["id"]}')
              ]
         )
-        keyboard.append([])
-        if page > 0:
-            keyboard[-1].append(InlineKeyboardButton(
-                'Предыдущая', callback_data=f'page_{page-1}'))
-        if end_index < len(all_items):
-            keyboard[-1].append(InlineKeyboardButton(
-                'Следующая', callback_data=f'page_{page+1}'))
-        keyboard.append(
-            [InlineKeyboardButton('выйти', callback_data=cs.EXIT)]
-        )
-        return keyboard
+    if page > 0:
+        keyboard[-1].append(InlineKeyboardButton(
+            'Предыдущая', callback_data=f'page_{page-1}'))
+    if end_index < len(all_items):
+        keyboard[-1].append(InlineKeyboardButton(
+            'Следующая', callback_data=f'page_{page+1}'))
+    keyboard.append(
+        [InlineKeyboardButton('выйти', callback_data=cs.EXIT)]
+    )
+    return keyboard
 
 
 async def represent_user_keyboard(

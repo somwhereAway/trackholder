@@ -12,6 +12,7 @@ from tg_bot.admin_menu.callbacks import (
     exit_conversation,
     represent_user,
     make_super,
+    chek_files
 )
 from tg_bot.start_handler import start
 from tg_bot.admin_menu import constants as cs
@@ -31,6 +32,10 @@ admin_handler = ConversationHandler(
             CallbackQueryHandler(
                 make_super,
                 pattern='^(' + cs.MAKE_SUPER + '|' + cs.MAKE_COMMON + ')'
+            ),
+            CallbackQueryHandler(
+                chek_files,
+                pattern='^(' + cs.CHECK_FILES + ')'
             ),
         ]
     },

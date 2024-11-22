@@ -46,7 +46,7 @@ async def get_user_all_file_paths_names(tg_id: int) -> list[tuple[str, str]]:
         return filepaths_names
 
 
-async def get_all_file_paths_names(tg_id: int) -> list[tuple[str, str]]:
+async def get_all_file_paths_names() -> list[tuple[str, str]]:
     async with AsyncSessionLocal() as session:
         statement = select(File)
         result = await session.execute(statement)
@@ -125,8 +125,7 @@ async def get_all_users() -> list[TelegramUser]:
     async with AsyncSessionLocal() as session:
         statement = select(TelegramUser)
         result = await session.execute(statement)
-        users = [user for user in result.scalars().all()]
-        return users
+        return result.scalars().all()
 
 
 async def get_user(tg_id: int) -> TelegramUser:
