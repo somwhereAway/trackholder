@@ -3,6 +3,7 @@ from io import BytesIO
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext, ConversationHandler
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from tg_bot.admin_menu.keyboards import (
@@ -16,9 +17,11 @@ from core.crud import (
     get_all_file_paths_names
 )
 from core.models import TelegramUser
+from core.db import with_db_session
 from tg_bot.admin_menu import constants as cs
 from tg_bot.decorators import require_administrator
 from tg_bot.kml_eng.validator import validate_kml
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,8 +39,13 @@ async def admin_panel(update: Update, context: CallbackContext) -> int:
 
 
 @require_administrator
-async def users_panel(update: Update, context: CallbackContext):
-    users: list[TelegramUser] = await get_all_users()
+@with_db_session
+async def users_panel(
+        update: Update,
+        context: CallbackContext,
+        session: AsyncSession
+):
+    users: list[TelegramUser] = await get_all_users(session)
     page = 0
     users_list = []
     for user in users:
@@ -86,17 +94,23 @@ async def rep_button(update: Update, context: CallbackContext) -> None:
 
 
 @require_administrator
-async def represent_user(update: Update, context: CallbackContext) -> None:
+@with_db_session
+async def represent_user(
+        update: Update,
+        context: CallbackContext,
+        session: AsyncSession) -> None:
     query = update.callback_query
     await query.answer()
     query_data = query.data
     tg_id = int(query_data.split('_')[1])
-    user = await get_user(tg_id)
+    user = await get_user(tg_id, session)
 
     if user:
         user_info = "\n".join(
             [
-                f"{field}: {getattr(user, field)}" for field in user.__table__.columns.keys()]
+                f"{field}: {getattr(user, field)}"
+                for field in user.__table__.columns.keys()
+            ]
         )
         text = f"Информация о пользователе:\n\n{user_info}"
         reply_markup = InlineKeyboardMarkup(
@@ -107,12 +121,15 @@ async def represent_user(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
     else:
-        # Если пользователь не найден
         await query.edit_message_text("Пользователь не найден.")
 
 
 @require_administrator
-async def make_super(update: Update, context: CallbackContext) -> None:
+@with_db_session
+async def make_super(
+        update: Update,
+        context: CallbackContext,
+        session: AsyncSession) -> None:
     query = update.callback_query
     await query.answer()
     query_data = query.data
@@ -128,7 +145,7 @@ async def make_super(update: Update, context: CallbackContext) -> None:
         }
     else:
         return await represent_user(update, context)
-    await update_user(tg_id, updates)
+    await update_user(tg_id, updates, session)
     return await represent_user(update, context)
 
 
@@ -144,10 +161,15 @@ async def exit_conversation(update: Update, context: CallbackContext) -> None:
     return ConversationHandler.END
 
 
-async def chek_files(update: Update, context: CallbackContext) -> None:
+@with_db_session
+@require_administrator
+async def chek_files(
+        update: Update,
+        context: CallbackContext,
+        session: AsyncSession) -> None:
     query = update.callback_query
     await query.answer()
-    files = await get_all_file_paths_names()
+    files = await get_all_file_paths_names(session)
     corrupted_files = []
     for path, name in files:
         with open(path, 'rb') as f:

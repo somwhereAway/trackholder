@@ -19,13 +19,13 @@ def validate_kml(file: BytesIO):
     return False
 
 
-path = "C:/Users/андрей/Desktop/кмл для телеграмим/all_merged.kml"
+if __name__ == '__main__':
 
+    path = "C:/Users/андрей/Desktop/кмл для телеграмим/all_merged.kml"
 
-def f(path):
-    with open(path, 'rb') as f:
-        file_data = BytesIO(f.read())
-        print(validate_kml(file_data))
+    def f(path):
+        with open(path, 'rb') as f:
+            file_data = BytesIO(f.read())
+            print(validate_kml(file_data))
 
-
-f(path)
+    f(path)
