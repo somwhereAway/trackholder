@@ -4,7 +4,7 @@ from typing import Tuple, Dict
 
 from lxml import etree
 
-from tg_bot.kml_eng.validator import validate_kml
+# from tg_bot.kml_eng.validator import validate_kml
 
 
 def merge_kml_files(file1, file2, output_file):
@@ -21,7 +21,6 @@ def merge_kml_files(file1, file2, output_file):
 
     second_file_nsmap = root2.nsmap
     nsmap = root1.nsmap
-    print(type(nsmap))
     for prefix, uri in second_file_nsmap.items():
         if prefix not in nsmap:
             nsmap[f"xmlns:{prefix}"] = uri
@@ -63,13 +62,14 @@ def get_nsmap_line(file_path: str, line_number: int = NSMAP_LINE) -> str:
 def parse_header(
     file: str,
     stop_str: str = "<Placemark",
-    foldef_str: str = "<Folder"
+    folder_str: str = "<Folder"
 ) -> Tuple[Dict[str, str], int]:
     line_count = 0
     with open(file, "r", encoding="utf-8") as f:
         for line in f:
             line_count += 1
-            if foldef_str in line:
+            if folder_str in line:
+                line_count += 1
                 return line_count, True
             if stop_str in line:
                 return line_count, False
@@ -116,6 +116,7 @@ def merge_kml_files_v2(files: list[tuple]) -> BytesIO:
         outfile.write((line + "\n").encode("utf-8"))
     for path, filename in files:
         count, contain_folders = parse_header(path)
+        print(count, contain_folders)
         append_file(outfile, path, count, contain_folders, filename)
     outfile.write((LAST_TWO_LINES).encode("utf-8"))
     outfile.seek(0)

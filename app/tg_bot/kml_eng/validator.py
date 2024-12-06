@@ -8,7 +8,7 @@ from pykml.parser import parse
 def validate_kml(file: BytesIO):
     try:
         file.seek(0)
-        tree = etree.parse(file)
+        etree.parse(file)
         file.seek(0)
         parse(file)
     except etree.XMLSyntaxError as xml_error:
