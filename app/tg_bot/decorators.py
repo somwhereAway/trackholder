@@ -15,28 +15,28 @@ ADMIN_ID = os.environ['ADMIN_ID']
 def require_registration(func):
     @wraps(func)
     async def wrapper(
-        update: Update, context: CallbackContext, *args, **kwargs
+        update: Update, context: CallbackContext, session, *args, **kwargs
     ):
         user_id = update.effective_user.id
-        if not await is_user_registered(user_id):
+        if not await is_user_registered(user_id, session):
             await update.message.reply_text(
                 "Пожалуйста, зарегистрируйтесь. Для этого скомандуйте /start.")
             return
-        return await func(update, context, *args, **kwargs)
+        return await func(update, context, session, *args, **kwargs)
     return wrapper
 
 
 def require_superuser(func):
     @wraps(func)
     async def wrapper(
-        update: Update, context: CallbackContext, *args, **kwargs
+        update: Update, context: CallbackContext, session,  *args, **kwargs
     ):
         user_id = update.effective_user.id
-        if not await is_superuser(user_id):
+        if not await is_superuser(user_id, session):
             await update.message.reply_text(
                 "Команда недоступна. Обратитесь к администратору.")
             return
-        return await func(update, context, *args, **kwargs)
+        return await func(update, context, session, *args, **kwargs)
     return wrapper
 
 

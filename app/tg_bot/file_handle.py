@@ -5,7 +5,7 @@ from aiofiles import os
 from io import BytesIO
 from telegram import Update
 from telegram.ext import CallbackContext
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud import (
     create_file,
@@ -14,6 +14,8 @@ from core.crud import (
     get_file_by_filepath,
     get_all_file_paths_names
 )
+
+from core.db import with_db_session
 from tg_bot.kml_eng.merge import merge_kml_files_v2
 from tg_bot.kml_eng.validator import validate_kml
 from tg_bot.decorators import (
@@ -39,21 +41,28 @@ def calculate_file_hash(file_stream) -> str:
     return hash_func.hexdigest()
 
 
+@with_db_session
 @require_registration
-async def handle_document(update: Update, context: CallbackContext) -> None:
+async def handle_document(
+    update: Update,
+    context: CallbackContext,
+    session: AsyncSession
+) -> None:
     document = update.message.document
     file_name = document.file_name
 
     if document.mime_type != 'application/vnd.google-earth.kml+xml':
         await delete_file_reply_text(update, KML_PLEASE)
         return
+
     file = await document.get_file()
     file_stream = await file.download_as_bytearray()
     file_stream_io = BytesIO(file_stream)
-    kml_is_not_ok = validate_kml(file_stream_io)
-    if kml_is_not_ok:
-        await delete_file_reply_text(update, kml_is_not_ok)
+
+    if (validation_error := validate_kml(file_stream_io)):
+        await delete_file_reply_text(update, validation_error)
         return
+
     hash_value = calculate_file_hash(file_stream_io)
     file_stream_io.seek(0)
     path_to_file = f"./files/{hash_value[-16:]}"
@@ -63,78 +72,71 @@ async def handle_document(update: Update, context: CallbackContext) -> None:
         "filepath": path_to_file,
         "created_by": int(update.message.from_user.id)
     }
-    file_in_database = await file_exists_in_database(hash_value)
-    file_in_store = False
-    if file_in_database:
-        file_in_store = await os.path.exists(file_in_database)
-    else:
-        file_in_store = await os.path.exists(path_to_file)
+
+    file_in_database = await file_exists_in_database(hash_value, session)
+    file_in_store = await os.path.exists(file_in_database or path_to_file)
+
     if file_in_database and file_in_store:
         await delete_file_reply_text(update, FILE_EXIST)
         return
+
     if file_in_database:
         with open(file_in_database, "wb") as f:
             f.write(file_stream_io.read())
         await update.message.reply_text(
-            "Файл по какойто причине отсутвовал в хранилище!\n"
+            "Файл по какой-то причине отсутствовал в хранилище!\n"
             "Файл успешно записан на диск!\n"
             "Админу сообщил.")
         return
+
     if file_in_store:
         logger.warning(
-            f"Файл {path_to_file} был в хранилище, но отсутвовал в бд!"
-        )
-        file_data["filepath"] = path_to_file + COPY_STR
-        if await create_file(file_data):
+            f"Файл {path_to_file} был в хранилище, но отсутствовал в БД!")
+        file_data["filepath"] += COPY_STR
+        if await create_file(file_data, session):
             await update.message.reply_text("Ваш файл сохранен.")
         else:
             await delete_file_reply_text(update, SAVE_ERROR)
         return
+
     with open(path_to_file, "wb") as f:
         f.write(file_stream_io.read())
-    if await create_file(file_data):
+
+    if await create_file(file_data, session):
         await update.message.reply_text("Ваш файл сохранен.")
     else:
         await delete_file_reply_text(update, SAVE_ERROR)
 
 
+@with_db_session
 async def check_file_paths(
-    filepaths: list[tuple[str, str]]
-) -> tuple[list[str], list[str]]:
-    missing_files = []
-
-    for path, name in filepaths:
-        if not await os.path.exists(path):
-            missing_files.append(path)
-    return missing_files
+    filepaths: list[tuple[str, str]], session: AsyncSession
+) -> list[str]:
+    return [path for path, _ in filepaths if not await os.path.exists(path)]
 
 
+@with_db_session
 async def send_merged_kml(
     update: Update,
     context: CallbackContext,
     filepaths_names: list[tuple[str, str]],
-    filename: str
+    filename: str,
+    session: AsyncSession
 ) -> None:
-    """
-    Отправляет пользователю объединенный KML-файл.
-    :param update: Объект обновления Telegram.
-    :param context: Контекст обратного вызова.
-    :param filepaths_names: Список путей файлов для объединения.
-    :param filename: Имя файла, который будет отправлен.
-    """
-
     if not filepaths_names:
         await update.message.reply_text("Файлов у меня пока нету.")
         return
 
-    missing_files = await check_file_paths(filepaths_names)
+    missing_files = await check_file_paths(filepaths_names, session=session)
     if missing_files:
         filenames = [
-            await get_file_by_filepath(filepath) for filepath in missing_files
+            await get_file_by_filepath(filepath, session)
+            for filepath in missing_files
         ]
         logger.info(f"Этих файлов нету!: {filenames}")
         await update.message.reply_text(
-            "Произошла ужасная ошибка: \n" f"Этих файлов нету!: {filenames}")
+            "Произошла ужасная ошибка: \n" f"Этих файлов нету!: {filenames}"
+        )
         return
 
     merged_file = merge_kml_files_v2(filepaths_names)
@@ -154,28 +156,31 @@ async def send_merged_kml(
         merged_file.close()
 
 
+@with_db_session
 @require_registration
-async def get_my_merged_kml(update: Update, context: CallbackContext) -> None:
-    """
-    Отправляет пользователю файл 'my_merged.kml'.
-    Этот файл содержит объединение всех файлов пользователя.
-    :param update: Объект обновления Telegram.
-    :param context: Контекст обратного вызова.
-    """
+async def get_my_merged_kml(
+    update: Update, context: CallbackContext, session: AsyncSession
+) -> None:
     filepaths_names = await get_user_all_file_paths_names(
-        update.message.from_user.id)
+        update.message.from_user.id, session
+    )
+    await send_merged_kml(
+        update,
+        context,
+        filepaths_names,
+        "my_merged.kml",
+        session=session)
 
-    await send_merged_kml(update, context, filepaths_names, "my_merged.kml")
 
-
+@with_db_session
 @require_superuser
-async def get_merged_all_kml(update: Update, context: CallbackContext) -> None:
-    """
-    Отправляет пользователю файл 'all_merged.kml'.
-    Этот файл содержит объединение всех файлов в БД.
-    :param update: Объект обновления Telegram.
-    :param context: Контекст обратного вызова.
-    """
-    filepaths_names = await get_all_file_paths_names()
-
-    await send_merged_kml(update, context, filepaths_names, "all_merged.kml")
+async def get_merged_all_kml(
+    update: Update, context: CallbackContext, session: AsyncSession
+) -> None:
+    filepaths_names = await get_all_file_paths_names(session)
+    await send_merged_kml(
+        update,
+        context,
+        filepaths_names,
+        "all_merged.kml",
+        session=session)

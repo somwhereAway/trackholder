@@ -1,10 +1,16 @@
 from io import BytesIO
 from itertools import islice
 from typing import Tuple, Dict
+import logging
+
+# Настройка логгера
 
 from lxml import etree
 
-from tg_bot.kml_eng.validator import validate_kml
+# from tg_bot.kml_eng.validator import validate_kml
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def merge_kml_files(file1, file2, output_file):
@@ -21,7 +27,6 @@ def merge_kml_files(file1, file2, output_file):
 
     second_file_nsmap = root2.nsmap
     nsmap = root1.nsmap
-    print(type(nsmap))
     for prefix, uri in second_file_nsmap.items():
         if prefix not in nsmap:
             nsmap[f"xmlns:{prefix}"] = uri
@@ -44,7 +49,7 @@ NAMESPACE_PATTERN = r'xmlns(:\w+)?="[^"]+"'
 FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 THERD_LINE = "<Document>"
 LAST_TWO_LINES = "</Document>\n</kml>"
-END_INDEX = 2
+END_INDEX = 4
 SPACE = " "
 BEGIN_NSMAP = "<kml "
 END_NSMAP = ">"
@@ -52,6 +57,7 @@ FOLDER_OPEN = "<Folder>\n"
 FOLDER_CLOSE = "</Folder>\n"
 NAME_OPEN = "<name>"
 NAME_CLOSE = "</name>\n"
+END_STRING = "</Document"
 
 
 def get_nsmap_line(file_path: str, line_number: int = NSMAP_LINE) -> str:
@@ -63,16 +69,17 @@ def get_nsmap_line(file_path: str, line_number: int = NSMAP_LINE) -> str:
 def parse_header(
     file: str,
     stop_str: str = "<Placemark",
-    foldef_str: str = "<Folder"
+    folder_str: str = "<Folder"
 ) -> Tuple[Dict[str, str], int]:
     line_count = 0
     with open(file, "r", encoding="utf-8") as f:
         for line in f:
             line_count += 1
-            if foldef_str in line:
+            if folder_str in line:
                 return line_count, True
             if stop_str in line:
                 return line_count, False
+
     return
 
 
@@ -93,14 +100,20 @@ def append_file(outfile, file, count, contain_folders, filename):
     with open(file, "r", encoding="utf-8") as in_file:
         all_lines = in_file.readlines()
         start_index = count - 1
-        if contain_folders:
+        end_index = 0
+        for line in all_lines[-END_INDEX:][::-1]:
+            logger.info(f"{line}")
+            end_index += 1
+            if END_STRING in line:
+                break
+        if not contain_folders:
             outfile.write(FOLDER_OPEN.encode("utf-8"))
             outfile.write(NAME_OPEN.encode("utf-8"))
             outfile.write(str(filename).encode("utf-8"))
             outfile.write(NAME_CLOSE.encode("utf-8"))
-        for i in range(start_index, len(all_lines) - END_INDEX):
+        for i in range(start_index, len(all_lines) - end_index):
             outfile.write(all_lines[i].encode("utf-8"))
-        if contain_folders:
+        if not contain_folders:
             outfile.write(FOLDER_CLOSE.encode("utf-8"))
 
 
@@ -116,6 +129,7 @@ def merge_kml_files_v2(files: list[tuple]) -> BytesIO:
         outfile.write((line + "\n").encode("utf-8"))
     for path, filename in files:
         count, contain_folders = parse_header(path)
+        print(count, contain_folders)
         append_file(outfile, path, count, contain_folders, filename)
     outfile.write((LAST_TWO_LINES).encode("utf-8"))
     outfile.seek(0)
