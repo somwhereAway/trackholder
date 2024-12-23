@@ -29,7 +29,7 @@ class TelegramUser(Base):
 
 class File(Base):
     __tablename__ = "file"
-
+    id = Column
     filehash = Column(String(64), primary_key=True, nullable=False)
     filename = Column(String, nullable=False)
     filepath = Column(String, unique=True, nullable=False)

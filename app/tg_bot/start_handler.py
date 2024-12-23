@@ -1,6 +1,5 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud import get_or_create_telegram_user
 from core.db import with_db_session

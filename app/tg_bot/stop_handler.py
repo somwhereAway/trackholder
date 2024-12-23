@@ -4,7 +4,8 @@ from telegram.ext import ContextTypes
 from core.crud import delete_user
 
 
-async def stop_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def stop_test(
+        update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_id = update.message.from_user.id
 
     deleted = await delete_user(tg_id)
